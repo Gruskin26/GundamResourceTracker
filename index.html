@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0f">
+<title>Gundam TCG Tracker</title>
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiR3VuZGFtIFRDRyBUcmFja2VyIiwic2hvcnRfbmFtZSI6Ikd1bmRhbSBUQ0ciLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBhMGEwZiIsInRoZW1lX2NvbG9yIjoiIzBhMGEwZiJ9">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap');
+
+- { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+height: 100%;
+overflow: hidden;
+touch-action: manipulation;
+}
+
+body {
+font-family: ‘Rajdhani’, sans-serif;
+background: #0a0a0f;
+color: #e0e0e0;
+display: flex;
+flex-direction: column;
+height: 100dvh;
+position: relative;
+}
+
+/* Subtle grid background */
+body::before {
+content: ‘’;
+position: fixed;
+inset: 0;
+background:
+linear-gradient(rgba(0,200,255,0.03) 1px, transparent 1px),
+linear-gradient(90deg, rgba(0,200,255,0.03) 1px, transparent 1px);
+background-size: 40px 40px;
+pointer-events: none;
+z-index: 0;
+}
+
+.app {
+display: flex;
+flex-direction: column;
+height: 100%;
+position: relative;
+z-index: 1;
+}
+
+/* Header */
+.header {
+text-align: center;
+padding: 12px 0 6px;
+flex-shrink: 0;
+}
+
+.header h1 {
+font-family: ‘Orbitron’, monospace;
+font-size: 11px;
+letter-spacing: 6px;
+text-transform: uppercase;
+color: rgba(0,200,255,0.5);
+font-weight: 400;
+}
+
+/* Main area */
+.main {
+flex: 1;
+display: flex;
+flex-direction: row;
+position: relative;
+min-height: 0;
+}
+
+/* Center divider */
+.divider {
+position: absolute;
+left: 50%;
+top: 0;
+bottom: 0;
+width: 2px;
+background: linear-gradient(
+to bottom,
+transparent,
+rgba(0,200,255,0.15) 15%,
+rgba(0,200,255,0.4) 50%,
+rgba(0,200,255,0.15) 85%,
+transparent
+);
+z-index: 5;
+transform: translateX(-50%);
+}
+
+.divider::after {
+content: ‘’;
+position: absolute;
+left: 50%;
+top: 50%;
+transform: translate(-50%, -50%);
+width: 8px;
+height: 8px;
+background: rgba(0,200,255,0.6);
+border-radius: 50%;
+box-shadow: 0 0 12px rgba(0,200,255,0.4);
+}
+
+/* Side panels */
+.panel {
+flex: 1;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+padding: 10px;
+position: relative;
+}
+
+.panel-label {
+font-family: ‘Orbitron’, monospace;
+font-size: 10px;
+letter-spacing: 4px;
+text-transform: uppercase;
+color: rgba(255,255,255,0.3);
+position: absolute;
+top: 12px;
+left: 0;
+right: 0;
+text-align: center;
+}
+
+/* Numbers */
+.number-display {
+font-family: ‘Orbitron’, monospace;
+font-weight: 900;
+font-size: clamp(80px, 22vw, 140px);
+line-height: 1;
+text-align: center;
+min-width: 2ch;
+position: relative;
+transition: color 0.2s;
+}
+
+.panel-left .number-display {
+color: #00c8ff;
+text-shadow: 0 0 30px rgba(0,200,255,0.3), 0 0 60px rgba(0,200,255,0.1);
+}
+
+.panel-right .number-display {
+color: #ff6b35;
+text-shadow: 0 0 30px rgba(255,107,53,0.3), 0 0 60px rgba(255,107,53,0.1);
+}
+
+.number-display.flash {
+animation: numFlash 0.15s ease-out;
+}
+
+@keyframes numFlash {
+0% { transform: scale(1.08); }
+100% { transform: scale(1); }
+}
+
+/* EX badge */
+.ex-badge {
+font-family: ‘Orbitron’, monospace;
+font-size: 12px;
+letter-spacing: 2px;
+color: rgba(0,200,255,0.4);
+margin-top: 4px;
+height: 18px;
+transition: opacity 0.2s;
+}
+
+.resource-sub {
+font-family: ‘Rajdhani’, sans-serif;
+font-size: 13px;
+font-weight: 300;
+color: rgba(255,107,53,0.4);
+margin-top: 4px;
+height: 18px;
+}
+
+/* Button area */
+.controls {
+flex-shrink: 0;
+padding: 10px 12px calc(env(safe-area-inset-bottom, 10px) + 10px);
+display: flex;
+gap: 8px;
+}
+
+.control-col {
+flex: 1;
+display: flex;
+flex-direction: column;
+gap: 6px;
+}
+
+.btn-row {
+display: flex;
+gap: 6px;
+}
+
+.btn {
+flex: 1;
+font-family: ‘Rajdhani’, sans-serif;
+font-weight: 700;
+font-size: 16px;
+letter-spacing: 1px;
+border: none;
+border-radius: 6px;
+padding: 14px 6px;
+cursor: pointer;
+transition: background 0.15s, transform 0.1s;
+-webkit-user-select: none;
+user-select: none;
+}
+
+.btn:active {
+transform: scale(0.95);
+}
+
+/* Left buttons — cyan theme */
+.btn-level-plus {
+background: rgba(0,200,255,0.15);
+color: #00c8ff;
+border: 1px solid rgba(0,200,255,0.25);
+}
+.btn-level-plus:active { background: rgba(0,200,255,0.3); }
+
+.btn-level-minus {
+background: rgba(0,200,255,0.08);
+color: rgba(0,200,255,0.7);
+border: 1px solid rgba(0,200,255,0.12);
+}
+.btn-level-minus:active { background: rgba(0,200,255,0.2); }
+
+.btn-ex {
+background: rgba(0,200,255,0.06);
+color: rgba(0,200,255,0.6);
+border: 1px solid rgba(0,200,255,0.1);
+font-size: 13px;
+}
+.btn-ex:active { background: rgba(0,200,255,0.18); }
+
+/* Right buttons — orange theme */
+.btn-res-plus {
+background: rgba(255,107,53,0.15);
+color: #ff6b35;
+border: 1px solid rgba(255,107,53,0.25);
+}
+.btn-res-plus:active { background: rgba(255,107,53,0.3); }
+
+.btn-res-minus {
+background: rgba(255,107,53,0.08);
+color: rgba(255,107,53,0.7);
+border: 1px solid rgba(255,107,53,0.12);
+}
+.btn-res-minus:active { background: rgba(255,107,53,0.2); }
+
+.btn-activate {
+background: linear-gradient(135deg, rgba(255,107,53,0.2), rgba(255,60,60,0.2));
+color: #ff6b35;
+border: 1px solid rgba(255,107,53,0.3);
+font-family: ‘Orbitron’, monospace;
+font-size: 12px;
+letter-spacing: 2px;
+text-transform: uppercase;
+}
+.btn-activate:active { background: linear-gradient(135deg, rgba(255,107,53,0.35), rgba(255,60,60,0.35)); }
+
+/* Reset */
+.reset-bar {
+display: flex;
+padding: 0 12px 10px;
+flex-shrink: 0;
+}
+
+.btn-reset-full {
+width: 100%;
+font-family: ‘Orbitron’, monospace;
+font-size: 12px;
+letter-spacing: 3px;
+text-transform: uppercase;
+background: rgba(255,60,60,0.08);
+border: 1px solid rgba(255,60,60,0.2);
+color: rgba(255,60,60,0.6);
+padding: 14px 20px;
+border-radius: 6px;
+cursor: pointer;
+-webkit-user-select: none;
+user-select: none;
+}
+.btn-reset-full:active { background: rgba(255,60,60,0.2); color: rgba(255,80,80,0.9); }
+
+/* Confirm overlay */
+.confirm-overlay {
+position: fixed;
+inset: 0;
+background: rgba(0,0,0,0.8);
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 100;
+}
+
+.confirm-box {
+background: #16161f;
+border: 1px solid rgba(255,60,60,0.3);
+border-radius: 12px;
+padding: 28px 24px;
+text-align: center;
+width: 280px;
+box-shadow: 0 0 40px rgba(255,60,60,0.1);
+}
+
+.confirm-box p {
+font-family: ‘Rajdhani’, sans-serif;
+font-size: 18px;
+font-weight: 500;
+color: rgba(255,255,255,0.8);
+margin-bottom: 20px;
+}
+
+.confirm-buttons {
+display: flex;
+gap: 10px;
+}
+
+.confirm-yes {
+flex: 1;
+font-family: ‘Orbitron’, monospace;
+font-size: 12px;
+letter-spacing: 2px;
+text-transform: uppercase;
+background: rgba(255,60,60,0.25);
+border: 1px solid rgba(255,60,60,0.5);
+color: rgba(255,60,60,0.9);
+padding: 14px 12px;
+border-radius: 6px;
+cursor: pointer;
+-webkit-user-select: none;
+user-select: none;
+}
+.confirm-yes:active { background: rgba(255,60,60,0.4); }
+
+.confirm-no {
+flex: 1;
+font-family: ‘Rajdhani’, sans-serif;
+font-weight: 700;
+font-size: 16px;
+letter-spacing: 1px;
+text-transform: uppercase;
+background: rgba(255,255,255,0.08);
+border: 1px solid rgba(255,255,255,0.25);
+color: rgba(255,255,255,0.7);
+padding: 14px 12px;
+border-radius: 6px;
+cursor: pointer;
+-webkit-user-select: none;
+user-select: none;
+}
+.confirm-no:active { background: rgba(255,255,255,0.15); }
+</style>
+
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useRef } = React;
+
+/**
+ * Gundam TCG Tracker
+ * 
+ * Tracks two values for a player during a Gundam TCG game:
+ *   - Level (left side): The player's total level, composed of base resources + EX resources.
+ *   - Active Resources (right side): How many resources are currently available to spend.
+ * 
+ * Game rules enforced:
+ *   - Active resources (right) can never exceed level (left).
+ *   - Neither value can go below zero.
+ *   - When spending resources (right minus), base resources are spent first.
+ *     Once all base resources are spent, EX resources are consumed instead,
+ *     which permanently reduces the player's total level.
+ *   - Level +1 also activates all resources (sets right = left).
+ *   - EX+ adds an EX resource, incrementing both level and active resources.
+ *   - Activate sets active resources equal to level.
+ */
+
+function App() {
+  // ── State ──────────────────────────────────────────────────────────
+  // level:     Total level (base + EX resources combined)
+  // resources: Currently active (unspent) resources
+  // exCount:   How many of the total level are EX resources
+  const [level, setLevel] = useState(0);
+  const [resources, setResources] = useState(0);
+  const [exCount, setExCount] = useState(0);
+
+  // Flash animation state for the number displays
+  const [flashLeft, setFlashLeft] = useState(false);
+  const [flashRight, setFlashRight] = useState(false);
+
+  // Reset confirmation state (two-step reset to prevent accidents)
+  const [confirmReset, setConfirmReset] = useState(false);
+
+  // ── Refs ───────────────────────────────────────────────────────────
+  // Refs mirror the state values so that event handlers always have
+  // access to the latest values without stale closure issues.
+  const levelRef = useRef(0);
+  const resourcesRef = useRef(0);
+  const exCountRef = useRef(0);
+
+  // ── Helpers ────────────────────────────────────────────────────────
+
+  /**
+   * Sync all three values to both refs and state in one call.
+   * This is the single source of truth for all state mutations.
+   */
+  const sync = (newLevel, newResources, newEx) => {
+    levelRef.current = newLevel;
+    resourcesRef.current = newResources;
+    exCountRef.current = newEx;
+    setLevel(newLevel);
+    setResources(newResources);
+    setExCount(newEx);
+  };
+
+  /**
+   * Trigger a brief scale animation on one of the number displays.
+   */
+  const flash = (side) => {
+    if (side === 'left') {
+      setFlashLeft(false);
+      requestAnimationFrame(() => setFlashLeft(true));
+      setTimeout(() => setFlashLeft(false), 160);
+    } else {
+      setFlashRight(false);
+      requestAnimationFrame(() => setFlashRight(true));
+      setTimeout(() => setFlashRight(false), 160);
+    }
+  };
+
+  const flashBoth = () => { flash('left'); flash('right'); };
+
+  // ── Button Handlers ────────────────────────────────────────────────
+
+  /**
+   * Level +1: Adds a base resource and activates all resources.
+   * New level = old level + 1, active resources set equal to new level.
+   */
+  const handleLevelUp = () => {
+    const newL = levelRef.current + 1;
+    sync(newL, newL, exCountRef.current);
+    flashBoth();
+  };
+
+  /**
+   * Level -1: Removes a base resource (or EX if no base remain).
+   * Caps active resources and EX count to not exceed the new level.
+   */
+  const handleLevelDown = () => {
+    const newL = Math.max(0, levelRef.current - 1);
+    const newR = Math.min(resourcesRef.current, newL);
+    const newEx = Math.min(exCountRef.current, newL);
+    sync(newL, newR, newEx);
+    flash('left');
+  };
+
+  /**
+   * EX+: Adds an EX resource to the game.
+   * Increments level, active resources, and EX count each by 1.
+   */
+  const handleExPlus = () => {
+    sync(
+      levelRef.current + 1,
+      resourcesRef.current + 1,
+      exCountRef.current + 1
+    );
+    flashBoth();
+  };
+
+  /**
+   * Resource +1: Reactivates one spent resource.
+   * Cannot exceed the current level (all resources already active).
+   */
+  const handleResUp = () => {
+    if (resourcesRef.current >= levelRef.current) return;
+    sync(levelRef.current, resourcesRef.current + 1, exCountRef.current);
+    flash('right');
+  };
+
+  /**
+   * Resource -1: Spends one active resource.
+   * Base resources are spent first. When active resources drop below
+   * the EX count, it means we've exhausted all base resources and are
+   * now spending EX resources — which also reduces total level.
+   */
+  const handleResMinus = () => {
+    if (resourcesRef.current <= 0) return;
+
+    let newR = resourcesRef.current - 1;
+    let newL = levelRef.current;
+    let newEx = exCountRef.current;
+
+    // If remaining resources are fewer than EX count, we're spending
+    // an EX resource: reduce both level and EX count permanently.
+    if (newR < newEx && newEx > 0) {
+      newL = Math.max(0, newL - 1);
+      newEx = newEx - 1;
+      flash('left');
+    }
+
+    sync(newL, newR, newEx);
+    flash('right');
+  };
+
+  /**
+   * Activate: Sets active resources equal to total level.
+   * Represents refreshing/readying all resources for a new turn.
+   */
+  const handleActivate = () => {
+    sync(levelRef.current, levelRef.current, exCountRef.current);
+    flash('right');
+  };
+
+  /**
+   * Reset: Clears all state. Called after user confirms via modal.
+   */
+  const handleReset = () => {
+    sync(0, 0, 0);
+    setConfirmReset(false);
+  };
+
+  const cancelReset = () => {
+    setConfirmReset(false);
+  };
+
+  // ── Render ─────────────────────────────────────────────────────────
+
+  return (
+    <>
+      {/* App title */}
+      <div className="header">
+        <h1>Gundam TCG</h1>
+      </div>
+
+      {/* Main display: Level on the left, Resources on the right */}
+      <div className="main">
+        <div className="panel panel-left">
+          <div className="panel-label">Level</div>
+          <div className={`number-display ${flashLeft ? 'flash' : ''}`}>
+            {level}
+          </div>
+          {/* Show EX count badge when EX resources are in play */}
+          <div className="ex-badge">
+            {exCount > 0 ? `EX +${exCount}` : '\u00A0'}
+          </div>
+        </div>
+
+        <div className="divider" />
+
+        <div className="panel panel-right">
+          <div className="panel-label">Resources</div>
+          <div className={`number-display ${flashRight ? 'flash' : ''}`}>
+            {resources}
+          </div>
+          <div className="resource-sub">{'\u00A0'}</div>
+        </div>
+      </div>
+
+      {/* Control buttons */}
+      <div className="controls">
+        {/* Left column: Level and EX controls */}
+        <div className="control-col">
+          <div className="btn-row">
+            <button className="btn btn-level-plus" onClick={handleLevelUp}>+ 1</button>
+            <button className="btn btn-level-minus" onClick={handleLevelDown}>− 1</button>
+          </div>
+          <button className="btn btn-ex" onClick={handleExPlus}>EX +</button>
+        </div>
+
+        {/* Right column: Resource controls */}
+        <div className="control-col">
+          <div className="btn-row">
+            <button className="btn btn-res-plus" onClick={handleResUp}>+ 1</button>
+            <button className="btn btn-res-minus" onClick={handleResMinus}>− 1</button>
+          </div>
+          <button className="btn btn-activate" onClick={handleActivate}>Activate</button>
+        </div>
+      </div>
+
+      {/* Reset button */}
+      <div className="reset-bar">
+        <button className="btn-reset-full" onClick={() => setConfirmReset(true)}>Reset</button>
+      </div>
+
+      {/* Confirmation modal overlay */}
+      {confirmReset && (
+        <div className="confirm-overlay" onClick={cancelReset}>
+          <div className="confirm-box" onClick={e => e.stopPropagation()}>
+            <p>Reset the board?</p>
+            <div className="confirm-buttons">
+              <button className="confirm-yes" onClick={handleReset}>Reset</button>
+              <button className="confirm-no" onClick={cancelReset}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('app')).render(<App />);
+</script>
+
+</body>
+</html>
